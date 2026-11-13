@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../src/BackgroundVoiceContext.cs" Link="App/BackgroundVoiceContext.cs" />
+    <Compile Include="../src/BleCapture.cs" Link="App/BleCapture.cs" />
+    <EmbeddedResource Include="../assets/app.ico" LogicalName="T1BLE.AppIcon" />
+    <Compile Include="../src/BackgroundAudioRouter.cs" Link="App/BackgroundAudioRouter.cs" />
+    <Compile Include="../src/DictationBridge.cs" Link="App/DictationBridge.cs" />
+    <Compile Include="../src/VoiceTypingKeyboard.cs" Link="App/VoiceTypingKeyboard.cs" />
+    <Compile Include="../src/SearchKeyGuard.cs" Link="App/SearchKeyGuard.cs" />
+    <Compile Include="../src/AdpcmDecoder.cs" Link="App/AdpcmDecoder.cs" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+</Project>

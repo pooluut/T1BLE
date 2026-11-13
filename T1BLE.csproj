@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ApplicationIcon>assets/app.ico</ApplicationIcon>
+    <DefaultItemExcludes>$(DefaultItemExcludes);.dotnet/**;.venv/**;.build-check/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <Compile Include="src/**/*.cs" />
+    <EmbeddedResource Include="assets/app.ico" LogicalName="T1BLE.AppIcon" />
+  </ItemGroup>
+</Project>

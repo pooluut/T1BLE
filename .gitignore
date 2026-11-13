@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+logs/
+.dotnet/
+bin/
+obj/
+.build-check/
+dist/
+.scratch/
+.vs/
+*.user
+*.suo
