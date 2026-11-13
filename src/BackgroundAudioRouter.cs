@@ -10,8 +10,9 @@ internal sealed class BackgroundAudioRouter : IRemoteAudioSink, IDisposable
     private readonly object gate = new();
     private readonly MMDeviceEnumerator devices = new();
     private readonly DictationBridge remote;
-    private readonly MMDevice microphone;
     private readonly MMDevice cable;
+    private MMDevice? cableCapture;
+    private MMDevice? computerDevice;
     private WasapiCapture? capture;
     private WasapiOut? player;
     private BufferedWaveProvider? buffer;
@@ -25,19 +26,10 @@ internal sealed class BackgroundAudioRouter : IRemoteAudioSink, IDisposable
     public bool IsComputerActive => capture is not null;
     public string DeviceName => remote.DeviceName;
     public bool ShouldActivate => remoteRequested;
-    public string MicrophoneName => microphone.FriendlyName;
 
     public BackgroundAudioRouter(Action<string> fault)
     {
         this.fault = fault;
-        // Validate before opening any stream; never allow a cable feedback loop.
-        microphone = devices.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Multimedia);
-        if (microphone.FriendlyName.Contains("CABLE", StringComparison.OrdinalIgnoreCase) ||
-            microphone.FriendlyName.Contains("Voicemeeter", StringComparison.OrdinalIgnoreCase))
-        {
-            microphone.Dispose(); devices.Dispose();
-            throw new InvalidOperationException("请先将系统默认输入设为电脑的实体麦克风，再启动后台模式。");
-        }
         try
         {
             remote = new DictationBridge();
@@ -58,7 +50,10 @@ internal sealed class BackgroundAudioRouter : IRemoteAudioSink, IDisposable
         computer = true;
         try
         {
-            capture = new WasapiCapture(microphone);
+            // Resolve lazily once when the computer path actually needs it.
+            cableCapture ??= FindCableCapture();
+            computerDevice = devices.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Multimedia);
+            capture = new WasapiCapture(computerDevice);
             buffer = new BufferedWaveProvider(capture.WaveFormat)
             { BufferDuration = TimeSpan.FromMilliseconds(500), DiscardOnBufferOverflow = false };
             player = new WasapiOut(cable, AudioClientShareMode.Shared, true, 60);
@@ -95,6 +90,7 @@ internal sealed class BackgroundAudioRouter : IRemoteAudioSink, IDisposable
     {
         lock (gate) { computer = false; }
         capture?.StopRecording(); capture?.Dispose(); capture = null;
+        computerDevice?.Dispose(); computerDevice = null;
         player?.Dispose(); player = null; buffer = null;
         ComputerReleased?.Invoke();
     }
@@ -106,8 +102,7 @@ internal sealed class BackgroundAudioRouter : IRemoteAudioSink, IDisposable
         {
             bool listening = false;
             // WASAPI session enumeration observes capture activity without opening a microphone.
-            using var endpoint = devices.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                .FirstOrDefault(d => d.FriendlyName.Equals("CABLE Output (VB-Audio Virtual Cable)", StringComparison.OrdinalIgnoreCase));
+            var endpoint = cableCapture;
             if (endpoint is not null)
             {
                 var sessions = endpoint.AudioSessionManager.Sessions;
@@ -118,7 +113,11 @@ internal sealed class BackgroundAudioRouter : IRemoteAudioSink, IDisposable
                     try
                     {
                         using var process = System.Diagnostics.Process.GetProcessById((int)session.GetProcessID);
-                        if (process.ProcessName.Equals("TextInputHost", StringComparison.OrdinalIgnoreCase)) listening = true;
+                        if (process.ProcessName.Equals("TextInputHost", StringComparison.OrdinalIgnoreCase))
+                        {
+                            listening = true;
+                            break;
+                        }
                     }
                     catch (ArgumentException) { }
                 }
@@ -130,10 +129,23 @@ internal sealed class BackgroundAudioRouter : IRemoteAudioSink, IDisposable
         catch { ReleaseComputer(); }
     }
 
+    private MMDevice? FindCableCapture()
+    {
+        MMDevice? selected = null;
+        foreach (var device in devices.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
+        {
+            if (selected is null && device.FriendlyName.Equals("CABLE Output (VB-Audio Virtual Cable)", StringComparison.OrdinalIgnoreCase))
+                selected = device;
+            else
+                device.Dispose();
+        }
+        return selected;
+    }
+
     public void Dispose()
     {
         lock (gate) { disposed = true; computer = false; }
         ReleaseComputer();
-        remote?.Dispose(); cable?.Dispose(); microphone.Dispose(); devices.Dispose();
+        remote?.Dispose(); cableCapture?.Dispose(); cable?.Dispose(); devices.Dispose();
     }
 }

@@ -37,10 +37,10 @@ internal sealed class BackgroundVoiceContext : ApplicationContext
                 try { router.SelectComputer(); microphoneTimer.Start(); SetStatus("电脑麦克风"); }
                 catch (Exception ex) { Fail(ex.Message); }
             });
-            search = new SearchKeyGuard(_ => { });
+            search = new SearchKeyGuard();
             var menu = new ContextMenuStrip();
             menu.Items.Add("状态与设置说明", null, (_, _) => MessageBox.Show(
-                $"{tray.Text}\n电脑麦克风：{router.MicrophoneName}\n\n系统默认输入保持电脑麦克风。\n在 Win+H 面板中将输入设为 CABLE Output。\n键盘 Win+H 使用电脑麦克风；遥控器语音键使用遥控器。\n停止遥控器后线缆保持静音，键盘 Win+H 才恢复电脑麦克风。\n若 Windows 已停止聆听，请先关闭面板再重新启动。\n更改电脑默认麦克风后需重启本程序。", "T1 后台语音"));
+                $"{tray.Text}\n\n在 Win+H 面板中将输入设为 CABLE Output。\n键盘 Win+H 使用电脑麦克风；遥控器语音键使用遥控器。\n停止遥控器后线缆保持静音，键盘 Win+H 才恢复电脑麦克风。\n若 Windows 已停止聆听，请先关闭面板再重新启动。", "T1 后台语音"));
             menu.Items.Add("退出", null, (_, _) => ExitThread());
             tray.ContextMenuStrip = menu;
             _ = RunAsync();

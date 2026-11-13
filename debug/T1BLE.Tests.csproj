@@ -15,6 +15,6 @@
     <Compile Include="../src/VoiceTypingKeyboard.cs" Link="App/VoiceTypingKeyboard.cs" />
     <Compile Include="../src/SearchKeyGuard.cs" Link="App/SearchKeyGuard.cs" />
     <Compile Include="../src/AdpcmDecoder.cs" Link="App/AdpcmDecoder.cs" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
   </ItemGroup>
 </Project>

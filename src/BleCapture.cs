@@ -18,6 +18,7 @@ internal sealed class BleCapture(Action<string> emit, IRemoteAudioSink bridge) :
     public bool CapabilitiesConfirmed { get; private set; }
     public string? LogPath { get; private set; }
     private readonly ConcurrentQueue<(Guid Uuid, byte[] Data)> incoming = new();
+    private static readonly Guid VoiceService = new("ab5e0001-5a21-4f05-bc7d-af01f617b664");
     private static readonly Guid Tx = new("ab5e0002-5a21-4f05-bc7d-af01f617b664");
     private static readonly Guid Audio = new("ab5e0003-5a21-4f05-bc7d-af01f617b664");
     private static readonly Guid Control = new("ab5e0004-5a21-4f05-bc7d-af01f617b664");
@@ -90,7 +91,7 @@ internal sealed class BleCapture(Action<string> emit, IRemoteAudioSink bridge) :
             try
             {
                 Record("connected_device", new { device.Name, status = device.ConnectionStatus.ToString() });
-                var result = await device.GetGattServicesAsync(BluetoothCacheMode.Uncached).AsTask(token);
+                var result = await device.GetGattServicesForUuidAsync(VoiceService, BluetoothCacheMode.Uncached).AsTask(token);
                 if (result.Status != GattCommunicationStatus.Success)
                     throw new InvalidOperationException($"服务枚举失败：{result.Status}");
                 services.AddRange(result.Services);
@@ -110,6 +111,7 @@ internal sealed class BleCapture(Action<string> emit, IRemoteAudioSink bridge) :
                         if (characteristic.Uuid == Tx) tx = characteristic;
                         Record("characteristic", new { service = service.Uuid, uuid = characteristic.Uuid,
                             handle = characteristic.AttributeHandle, properties = properties.ToString() });
+                        if (!IsVoiceNotification(characteristic.Uuid)) continue;
                         var mode = properties.HasFlag(GattCharacteristicProperties.Notify)
                             ? GattClientCharacteristicConfigurationDescriptorValue.Notify
                             : properties.HasFlag(GattCharacteristicProperties.Indicate)
@@ -285,10 +287,10 @@ internal sealed class BleCapture(Action<string> emit, IRemoteAudioSink bridge) :
 
     private void Notification(GattCharacteristic sender, GattValueChangedEventArgs args)
     {
+        if (!IsVoiceNotification(sender.Uuid)) return;
         using var reader = DataReader.FromBuffer(args.CharacteristicValue);
         var bytes = new byte[reader.UnconsumedBufferLength];
         reader.ReadBytes(bytes);
-        if (sender.Uuid != Control && sender.Uuid != Audio) return;
         incoming.Enqueue((sender.Uuid, bytes));
         try { notificationReady.Release(); }
         catch (SemaphoreFullException) { } // Multiple packets share one pending wakeup.
@@ -296,6 +298,8 @@ internal sealed class BleCapture(Action<string> emit, IRemoteAudioSink bridge) :
         Record("notification", new { uuid = sender.Uuid, handle = sender.AttributeHandle,
             length = bytes.Length, hex = Convert.ToHexString(bytes) });
     }
+
+    internal static bool IsVoiceNotification(Guid uuid) => uuid == Control || uuid == Audio;
 
     public void Dispose() { lock (gate) { writer?.Dispose(); writer = null; } }
 }

@@ -61,10 +61,32 @@ internal static class TestProgram
             Check(0x80, -100, -100);
             decoder.Sync(32760, 88);
             Check(0x77, 32767, 32767);
+            decoder.Sync(-32760, 88);
+            Check(0xFF, -32768, -32768);
+            byte[] compressed = [0x17, 0x80, 0xFF, 0x43, 0x28, 0x77, 0x00];
+            byte[] whole = [];
+            var contiguous = new AdpcmDecoder { PcmReady = pcm => whole = pcm };
+            contiguous.Write(compressed);
+            var split = new List<byte>();
+            var fragmented = new AdpcmDecoder { PcmReady = split.AddRange };
+            fragmented.Write(compressed[..2]);
+            fragmented.Write(compressed[2..5]);
+            fragmented.Write(compressed[5..]);
+            if (!whole.SequenceEqual(split)) throw new Exception("分包改变了连续解码状态。");
             try { decoder.Sync(0, 89); throw new Exception("无效同步索引未拒绝。"); }
             catch (InvalidDataException) { }
             Directory.CreateDirectory("logs");
             File.WriteAllText("logs/decoder-test.json", "{\"passed\":true}");
+            return;
+        }
+        if (args.Contains("--ble-filter-test"))
+        {
+            if (!BleCapture.IsVoiceNotification(new Guid("ab5e0003-5a21-4f05-bc7d-af01f617b664")) ||
+                !BleCapture.IsVoiceNotification(new Guid("ab5e0004-5a21-4f05-bc7d-af01f617b664")) ||
+                BleCapture.IsVoiceNotification(new Guid("ab5e0002-5a21-4f05-bc7d-af01f617b664")) ||
+                BleCapture.IsVoiceNotification(new Guid("00002a19-0000-1000-8000-00805f9b34fb")))
+                throw new Exception("BLE 通知范围不正确。");
+            Console.WriteLine("BLE notification filter test passed.");
             return;
         }
         if (args.Contains("--microphone-idle-test"))

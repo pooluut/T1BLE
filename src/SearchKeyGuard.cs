@@ -5,17 +5,14 @@ namespace T1BLE;
 
 // Install on the WinForms message-loop thread before BLE notifications start.
 // WH_KEYBOARD_LL cannot identify the source device. Only VK_BROWSER_SEARCH
-// is suppressed, and only while a dictation session owns this guard.
+// is suppressed while the application owns this guard.
 internal sealed partial class SearchKeyGuard : IDisposable
 {
     private readonly HookProc callback;
-    private readonly Action<string> report;
     private IntPtr hook;
-    public int Suppressed { get; private set; }
 
-    public SearchKeyGuard(Action<string> report)
+    public SearchKeyGuard()
     {
-        this.report = report;
         callback = OnKey;
         hook = SetWindowsHookEx(13, callback, GetModuleHandle(null), 0);
         if (hook == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -25,14 +22,14 @@ internal sealed partial class SearchKeyGuard : IDisposable
     {
         if (code >= 0 && Marshal.ReadInt32(data) == 0xAA)
         {
-            Suppressed++;
-            // Avoid logging or I/O within the low-level hook timeout.
-            var context = SynchronizationContext.Current;
-            context?.Post(_ => report("已拦截原生搜索键，保留当前输入焦点。"), null);
+            OnSuppressed();
             return new IntPtr(1);
         }
         return CallNextHookEx(hook, code, message, data);
     }
+
+    // Compiled away in the application; the test project supplies observation.
+    partial void OnSuppressed();
 
     public void Dispose()
     {

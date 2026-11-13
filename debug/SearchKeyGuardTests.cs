@@ -2,13 +2,16 @@ using System.Runtime.InteropServices;
 namespace T1BLE;
 internal sealed partial class SearchKeyGuard
 {
+    private int suppressed;
+    partial void OnSuppressed() => suppressed++;
+
     internal static void SelfTest()
     {
         using var form = new Form { ShowInTaskbar = false, Opacity = 0 };
         using var timer = new System.Windows.Forms.Timer { Interval = 200 };
         SearchKeyGuard? guard = null;
         int phase = 0;
-        form.Load += (_, _) => { guard = new SearchKeyGuard(_ => { }); timer.Start(); };
+        form.Load += (_, _) => { guard = new SearchKeyGuard(); timer.Start(); };
         timer.Tick += (_, _) =>
         {
             if (phase++ == 0)
@@ -18,7 +21,7 @@ internal sealed partial class SearchKeyGuard
                 return;
             }
             timer.Stop();
-            int count = guard!.Suppressed;
+            int count = guard!.suppressed;
             guard.Dispose();
             Directory.CreateDirectory("logs");
             File.WriteAllText("logs/search-guard-test.json",

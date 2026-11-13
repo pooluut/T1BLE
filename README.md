@@ -6,7 +6,7 @@ Windows x64 托盘程序：键盘 Win+H 使用电脑麦克风，Google TV BLE �
 ## 使用
 
 1. 安装 VB-Audio Virtual Cable，并提前配对遥控器。
-2. Windows 系统默认输入保持为电脑实体麦克风。
+2. 唤醒已配对的遥控器。
 3. 在 Win+H 面板内将输入设为 **CABLE Output (VB-Audio Virtual Cable)**。
 4. 双击 `dist/T1BLE.exe`，程序驻留右下角通知区域；图标可能位于隐藏图标的小箭头中。
 5. 唤醒遥控器，等待连接后点击目标文本框使用。右键托盘图标查看状态或退出。
@@ -23,13 +23,15 @@ EXE 不包含 .NET 和 Windows 桌面运行库。运行电脑需要安装 **.NET
 - 遥控器收音时按键盘 Win+H：转为电脑音频，遥控器后续数据不进入线缆；遥控器采集由再次按语音键或超时结束。
 - BLE 断连后按5、10、20、40、60秒逐步延长间隔重试，成功确认能力后重置；电脑麦克风路径仍可使用。
 - BLE 闲置时等待通知，不做20毫秒轮询；仅收音时设置续录和超时唤醒。电脑麦克风状态检查仅在电脑采音期间启用。
+- 只发现 ATVV 语音服务、订阅音频与控制通知，不订阅其他功能通知。电脑采音期间缓存线缆输入端点，不在每次状态检查时重新枚举设备。
 - 不修改系统默认输入、不操作 TextInputHost UI 或持久化设备偏好、不增加遥控器按键防抖。
 - 两个版本均不保存 WAV、ADPCM 或原始音频通知。正式版不创建日志；调试版记录连接和控制日志。
+- 正式版不统计搜索键次数、不投递诊断回调、不显示麦克风名称；仅保留音源选择、停止采音和断连恢复所需的状态处理。启动不查询或校验系统默认输入；仅在按下键盘 Win+H 时使用 Windows 当前的默认录音设备。
 - 拦截标准浏览器搜索键以避免遥控器抢走焦点；此接口无法区分设备，其他键盘的标准搜索键也受影响。
 
 Win+H 是切换快捷键，音频会话观察不能保证面板任意状态下均可一键开始。
 从关闭的面板开始使用；若面板打开但已停止聆听，先关闭再重新开始。
-切换系统默认电脑麦克风或拔插音频设备后请重启程序。
+切换电脑默认录音设备后，下次键盘 Win+H 会使用新设备；拔插虚拟线缆后请重启程序。
 
 ## 开发和打包
 
@@ -72,6 +74,7 @@ dotnet run --project debug/T1BLE.Tests.csproj -- --search-guard-test
 dotnet run --project debug/T1BLE.Tests.csproj -- --background-audio-test
 dotnet run --project debug/T1BLE.Tests.csproj -- --audio-test
 dotnet run --project debug/T1BLE.Tests.csproj -- --decoder-test
+dotnet run --project debug/T1BLE.Tests.csproj -- --ble-filter-test
 dotnet run --project debug/T1BLE.Tests.csproj -c Release -- --logging-mode-test
 dotnet run --project debug/T1BLE.Tests.csproj -c Debug -- --logging-mode-test
 dotnet run --project debug/T1BLE.Tests.csproj -c Release -- --performance-probe

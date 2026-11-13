@@ -10,7 +10,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);.dotnet/**;.venv/**;.build-check/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
     <Compile Include="src/**/*.cs" />
     <EmbeddedResource Include="assets/app.ico" LogicalName="T1BLE.AppIcon" />
   </ItemGroup>

@@ -21,12 +21,12 @@ internal sealed class AdpcmDecoder
         int offset = 0;
         foreach (byte value in data)
         {
-            foreach (int nibble in new[] { value >> 4, value & 15 })
-            {
-                short sample = Decode(nibble);
-                pcm[offset++] = (byte)sample;
-                pcm[offset++] = (byte)(sample >> 8);
-            }
+            short sample = Decode(value >> 4);
+            pcm[offset++] = (byte)sample;
+            pcm[offset++] = (byte)(sample >> 8);
+            sample = Decode(value & 15);
+            pcm[offset++] = (byte)sample;
+            pcm[offset++] = (byte)(sample >> 8);
         }
         PcmReady?.Invoke(pcm);
     }
